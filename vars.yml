@@ -1,0 +1,9 @@
+---
+
+#drupal version
+
+drupal_core_version: "8.1.x"
+
+drupal_core_path: "/var/www/drupal-{{ drupal_core_version }}-dev"
+
+domain: "drupaltest"

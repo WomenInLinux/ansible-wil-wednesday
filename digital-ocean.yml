@@ -1,0 +1,21 @@
+---
+- hosts: digitalocean 
+  
+  vars:
+        do_token: e0c6e28c0c3753521733f4a81f63911a5701d1831281db83662fe386dfd5fa05
+
+  become: yes
+  tasks:
+        - digitalocean:
+                state: present
+                command: ssh
+                name: TOKEN
+                ssh_pub_key: 'ssh-rsa AAAA....'
+                api_token: $TOKEN
+                command: droplet
+                name: tamtest
+                size_id: 2gb
+                region_id: ams2
+                image_id: centos-72-x64
+                wait_timeout: 500
+                register: tamtest

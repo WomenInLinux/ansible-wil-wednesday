@@ -1,0 +1,29 @@
+---
+
+- hosts: centos 
+
+  become: yes
+  tasks:
+  - name: Create a file
+    file: src=/etc dest=/tmp/etc owner=root group=root state=link
+  - name: Delete file just created
+    file: dest=/tmp/etc state=absent
+  - name: Cron Jobs 
+    cron: 
+          name: daily-cron-all-servers 
+          minute: 20 
+          hour: 14 
+          month: 12 
+          weekday: 3
+          job: "service restart sshd"
+  - name:
+    yum: name=git state=present
+  - name: Git Repo Clone
+    git:
+          repo: git://github.com/WomenInLinux/Mongodb
+          dest: /opt/Mongodb
+          clone: yes
+          
+
+    
+  

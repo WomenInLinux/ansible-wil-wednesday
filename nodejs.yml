@@ -1,0 +1,74 @@
+---
+
+-   hosts: centos
+   
+    become: yes 
+     
+    vars:
+      node_apps_location: /opt
+
+    tasks:
+      - name: Installing apache  and ldap
+        yum:  name={{ item }} state=present
+        with_items:
+                - httpd
+                - httpd-devel
+                - mod_ldap
+
+      - name:  Copy configuration files
+        command: > 
+                cp /usr/share/doc/httpd-2.4.6/httpd-vhosts.conf /etc/httpd/conf/httpd-vhosts.conf
+#
+#      - lineinfile: 
+#           dest: /etc/httpd/conf/httpd.conf
+#           regexp: '^LoadModule authn_default_module modules/mod_authn_default.so'
+#           line: '# LoadModule authn_default_module modules/mod_authn_default.so'
+#      - lineinfile:     
+#           dest: /etc/httpd/conf/httpd.conf
+#           regexp: '^LoadModule authnz_ldap_module modules/mod_authnz_ldap.so'
+#           line:  '# LoadModule authnz_ldap_module modules/mod_authnz_ldap.so'
+#      - lineinfile:     
+#           dest: /etc/httpd/conf/httpd.conf
+#           regexp: '^LoadModule ldap_module modules/mod_ldap.so'
+#           line:  '# LoadModule authnz_ldap_module modules/mod_ldap.so'
+#      - lineinfile:     
+#           dest: /etc/httpd/conf/httpd.conf
+#           regexp: '^LoadModule disk_cache_module modules/mod_disk_cache.so'
+#           line:  '# LoadModule disk_cache_module modules/mod_disk_cache.so'
+#      - lineinfile:     
+#           dest: /etc/httpd/conf.modules.d/00-mpm.conf
+#           regexp: '^LoadModule mpm_prefork_module modules/mod_mpm_prefork.so'
+#           line:  '# LoadModule mpm_prefork_module modules/mod_mpm_prefork.so'
+      - name: Start Apache and configure it to run at boot
+        systemd:  name=httpd state=restarted enabled=yes
+      - name:  Install Remi repo.
+        yum:
+           name: "http://rpms.remirepo.net/enterprise/remi-release-7.rpm"
+           state: present
+      - name: Import Remi GPG key.
+        rpm_key:
+           key: /etc/pki/rpm-gpg/RPM-GPG-KEY-remi
+           state:  present
+      - name:  Install EPEL repo
+        systemd: name=firewalld state=stopped
+      - name:  Install Node.js and npm
+        yum:   name=npm state=present enablerepo=epel
+      - name:  Install Node.js and npm
+        npm:  name=forever global=yes state=present
+      - name:  Ensure Node.js app folder exists.
+        file:  "path={{ node_apps_location }} state=directory"
+      - name: Copy node.js app to server
+        copy:  "src=app dest={{ node_apps_location}}"
+      - name:  Install app dependencies defined in packages.json
+        npm:  path={{ node_apps_location }}/app
+
+#Now we have to start the app
+      - name: Check list of running node.js apps
+        command: forever list
+        register: forever_list
+        changed_when: false 
+
+      - name: Start example Node.js app
+        command: "forever start {{ node_apps_location }}/app/app.js"
+        when: "forever_list.stdout.find('{{ node_apps_location }}/app/app.js') == -1"
+#

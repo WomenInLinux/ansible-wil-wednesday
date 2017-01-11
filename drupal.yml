@@ -1,0 +1,78 @@
+---
+
+- hosts: all
+  
+  vars_files:
+        - vars.yml
+  pre_tasks:
+    - name: Update apt cache if needed
+      apt: update_cache=yes cache_valid_time=3600
+
+  handlers:
+    - name: restart apache
+      service: name=apache2 state=restarted
+  
+  tasks:
+    - name: Get software for apt respository management.
+      apt:  name={{ item }} state=present
+      with_items:
+        - python-apt
+        - python-pycurl
+   
+    - name: "Install Apache, Mysql, PHP and other dependencies."
+      apt:  name={{ item }} state=present
+      with_items:
+        - git
+        - curl
+        - sendmail
+        - apache2
+        - php7.0-common
+        - php7.0-cli
+        - php7.0-dev
+        - php7.0-gd
+        - php7.0-curl
+        - php7.0-json
+        - php7.0-opcache
+        - php7.0-xml
+        - php7.0-mbstring
+        - php7.0-pdo
+        - php7.0-mysql
+        - php-apcu
+        - libprec3-dev
+        - libapache2-mod-php7.0
+        - python-mysqldb
+        - mysql-server
+    - name: Disable the firewall
+      service: name=ufw state=stopped
+
+    - name: "Start Apache, Mysql, and PHP"
+      service: "name={{ item }} state=started enabled=yes"
+      with_items:
+        - apache2
+        - mysql
+    - name: Enable Apache rewrite module 
+      apache2_module: name=rewrite state=present
+      notify: restart apache
+
+    - name: Add apache virtualhost for drupal 8 development
+      template:
+        src: "template/drupal.dev.conf.j2"
+        dest: "/etc/apache2/sites-available/{{ domain }}.dev.conf"
+        owner: root
+        group: root
+        mode: 0644
+        notify: restart apache
+
+    - name: Symlink Drupal virtualhost to sites-enabled
+      file:
+        src: "/etc/apache2/sites-available/{{ domain }}.dev.conf"
+        dest: "/etc/apache2/sites-available/{{ domain }}.dev.conf"
+        state: link
+      notify: restart apache
+   
+    - name:  Remove default virtualhost file.
+      file:
+        path: "/etc/apache2/sites-enabled/000-default.conf"
+        state: abest
+      notify: restart apache
+
