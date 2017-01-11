@@ -63,7 +63,7 @@
   - lineinfile:
         dest: /etc/autofs_ldap_auth.conf
         regexp:  clientprinc=@LTCENG.COM
-        line:  "\t clientprinc=\"{{ ansible_fqdn }}@LTCENG.COM\""
+        line:  "\t clientprinc=\"{{ ansible_fqdn }}@WOMENINLINUX.COM\""
         insertafter: 'authtype'
   - copy: 
       src: /etc/sudo-ldap.conf 
