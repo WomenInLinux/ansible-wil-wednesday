@@ -37,7 +37,7 @@
   - name: Adding ipa-admintools
     yum: name=ipa-admintools state=present
   - name:  Adding to the domain of ipa
-    command: "ipa-client-install --domain=womeninlinux.com --server={{ ipa_server }} --realm=LTCENG.COM  -w badPassWord  --principal admin -U"
+    command: "ipa-client-install --domain=womeninlinux.com --server={{ ipa_server }} --realm=WOMENINLINUX.COM  -w badPassWord  --principal admin -U"
   - expect:
       command: kinit admin 
       responses:
