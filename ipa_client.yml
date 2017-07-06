@@ -1,0 +1,77 @@
+---
+
+- hosts: centos 
+
+  become: yes
+
+  vars:
+   ipa_server: ipa-server.womeninlinux.com
+
+  tasks:
+  - name: Setting up the epel 
+    yum: 
+     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+     state: present
+
+  - name: Installing python and pip 
+    yum:  name={{ item }} state=present
+    with_items:
+            -  python 
+            -  python-pip
+  - name: Installing pexpect using pip
+    command: pip install pexpect
+  - lineinfile: 
+       dest: /etc/resolv.conf
+       regexp: '^search'
+       line:  'search womeninlinux.com'    
+  - name: Ensuring nameservers are setup 
+    blockinfile:
+       dest: /etc/resolv.conf
+       block: |
+        {{ item.name }} {{ item.ip }}
+       marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item.name}}"
+    with_items:
+        - { name: nameserver, ip: 10.1.10.11}
+  - name: Installing ipa-client
+    yum: name=ipa-client state=present
+  - name: Adding ipa-admintools
+    yum: name=ipa-admintools state=present
+  - name:  Adding to the domain of ipa
+    command: "ipa-client-install --domain=womeninlinux.com --server={{ ipa_server }} --realm=WOMENINLINUX.COM  -w badPassWord  --principal admin -U"
+  - expect:
+      command: kinit admin 
+      responses:
+        (?i)password: "badPassWord"
+  - name: Adding service to ipa server
+    shell: >
+        ipa service-add nfs/`hostname`
+  - name: Adding keytab to client 
+    shell: ipa-getkeytab -s {{ ipa_server }} -p nfs/`hostname` -k /etc/krb5.keytab
+  - name: Setting up automount
+    command: "ipa-client-automount --server={{ ipa_server }} --location=nfs-cifs-unclass -U"
+  - lineinfile:
+        dest: "/etc/autofs_ldap_auth.conf"
+        regexp:   authrequired="no"
+        line: "\t authrequired=\"yes\""
+  
+  - lineinfile:
+        dest: /etc/autofs_ldap_auth.conf
+        regexp:  authtype="GSSAPI"
+        line:  "\t authtype=\"GSSAPI\""
+        insertafter: 'authrequired'
+
+  - lineinfile:
+        dest: /etc/autofs_ldap_auth.conf
+        regexp:  clientprinc=@LTCENG.COM
+        line:  "\t clientprinc=\"{{ ansible_fqdn }}@WOMENINLINUX.COM\""
+        insertafter: 'authtype'
+  - copy: 
+      src: /etc/sudo-ldap.conf 
+      dest: /etc/               
+  - name: Setting the domainname
+    shell: domainname womeninlinux.com
+  - name: Copying /etc/nsswitch.conf file over
+    copy: 
+      src: /etc/nsswitch.conf
+      dest: /etc/nsswitch.conf
+
