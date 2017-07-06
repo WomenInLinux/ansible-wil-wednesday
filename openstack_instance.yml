@@ -1,0 +1,25 @@
+---
+#Here we will define the create of droplets on DO using ansible
+- name: Create a new instance and attaches to a network and passes metadata to the instance
+  hosts: localhost 
+  tasks:
+    - name: Create instance
+      os_server:
+          state: present
+          auth:
+            auth_url: http://138.197.0.114:5000/v3 
+            username: admin
+            password: 10ac3fdc5f1d4234 
+            project_name: admin
+            tenant_name: admin
+            project_domain_name: Default
+            user_domain_name: Default
+          name: vm2
+          image: e2ed95ff-93c3-4386-9c45-112a3a8ac25a 
+          region_name: RegionOne
+          availability_zone: nova
+          timeout: 200
+          flavor: 1 
+          nics:
+            - net-id:  9ffd4f28-db73-4009-8a39-069133470bad 
+            - net-name: public
